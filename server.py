@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import argparse
+import configargparse
 
 from flask import Flask, jsonify, request
 from onmt.translate import TranslationServer, ServerModelError
@@ -26,6 +26,12 @@ def start(config_file,
     @app.route('/models', methods=['GET'])
     def get_models():
         out = translation_server.list_models()
+        return jsonify(out)
+
+    @app.route('/health', methods=['GET'])
+    def health():
+        out = {}
+        out['status'] = STATUS_OK
         return jsonify(out)
 
     @app.route('/clone_model/<int:model_id>', methods=['POST'])
@@ -103,14 +109,21 @@ def start(config_file,
             threaded=True)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="OpenNMT-py REST Server")
+def _get_parser():
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        description="OpenNMT-py REST Server")
     parser.add_argument("--ip", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default="5000")
     parser.add_argument("--url_root", type=str, default="/translator")
     parser.add_argument("--debug", "-d", action="store_true")
     parser.add_argument("--config", "-c", type=str,
                         default="./available_models/conf.json")
+    return parser
+
+
+if __name__ == '__main__':
+    parser = _get_parser()
     args = parser.parse_args()
     start(args.config, url_root=args.url_root, host=args.ip, port=args.port,
           debug=args.debug)
